@@ -95,13 +95,27 @@ parts:
       mkdir -p $CRAFT_PART_INSTALL/bin/wrappers
       cp helpers/snap-wrappers/charm $CRAFT_PART_INSTALL/bin/wrappers/
 
-      PYTHONHOME=$CRAFT_PART_INSTALL \
-          PYTHONPATH=$CRAFT_PART_INSTALL/usr/lib/python3/dist-packages:$CRAFT_PART_INSTALL/usr/lib/python3.10/site-packages:$CRAFT_PART_INSTALL/usr/lib/python3.10:$CRAFT_PART_INSTALL/usr/lib/python3.10/lib-dynload:$CRAFT_PART_INSTALL/usr/local/lib/python3.10/dist-packages \
-          $CRAFT_PART_INSTALL/usr/local/bin/vergit --format=json > $CRAFT_PART_INSTALL/charm-tools-version
-      version=$(PYTHONHOME=$CRAFT_PART_INSTALL \
-                PYTHONPATH=$CRAFT_PART_INSTALL/usr/lib/python3/dist-packages:$CRAFT_PART_INSTALL/usr/lib/python3.10/site-packages:$CRAFT_PART_INSTALL/usr/lib/python3.10:$CRAFT_PART_INSTALL/usr/lib/python3.10/lib-dynload:$CRAFT_PART_INSTALL/usr/local/lib/python3.10/dist-packages \
-                $CRAFT_PART_INSTALL/usr/local/bin/vergit)
-      craftctl set version=$version
+      # Generate version info from git tags (replaces vergit)
+      IFS='-' read -r TAG_PART1 TAG_PART2 TAG_PART3 <<< "$desc"
+      if [[ -n "$TAG_PART2" && -n "$TAG_PART3" ]]; then
+          TAG_VERSION="$TAG_PART1"
+          TAG_GIT="+${TAG_PART2}-${TAG_PART3}"
+          # Ensure TAG_GITN is a proper integer
+          if [[ "$TAG_PART2" =~ ^[0-9]+$ ]]; then
+              TAG_GITN=$((TAG_PART2 + 0))
+          else
+              TAG_GITN=0
+          fi
+      else
+          TAG_VERSION="$desc"
+          TAG_GIT=""
+          TAG_GITN=0
+      fi
+      printf '{"version": "%s", "git": "%s", "gitn": %d}\n' \
+          "$TAG_VERSION" "$TAG_GIT" "$TAG_GITN" \
+          > "$CRAFT_PART_INSTALL/charm-tools-version"
+
+      craftctl set version=$desc
     override-stage: |
       find $CRAFT_PART_INSTALL -type f -print0 | xargs -0 sed -i '1 s/^#\!.*python$/#\!\/usr\/bin\/env python3/'
       find $CRAFT_PART_INSTALL -type f -print0 | xargs -0 sed -i '1 s/^#\!.*python3$/#\!\/usr\/bin\/env python3/'
