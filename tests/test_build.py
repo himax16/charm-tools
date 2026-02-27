@@ -3,10 +3,17 @@ import os
 import json
 import unittest
 import logging
-import pkg_resources
 import zipfile
 from path import Path as path, TempDir
 
+try:
+    import importlib.resources
+
+    def resource_filename(package, resource):
+        """Return the filename for the given resource"""
+        return str(importlib.resources.files(package).joinpath(resource))
+except ImportError:
+    from pkg_resources import resource_filename
 
 from charmtools import build
 from charmtools.build.errors import BuildError
@@ -17,7 +24,7 @@ import responses
 
 class TestBuild(unittest.TestCase):
     def setUp(self):
-        self.dirname = path(pkg_resources.resource_filename(__name__, ""))
+        self.dirname = path(resource_filename(__name__, ""))
         self.build_dir = TempDir()
         os.environ["CHARM_HIDE_METRICS"] = 'true'
         os.environ["CHARM_LAYERS_DIR"] = self.dirname / "layers"

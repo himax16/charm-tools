@@ -24,7 +24,19 @@ import shutil
 import sys
 import tempfile
 
-from Cheetah.Template import Template
+# Print Cheetah version
+log = logging.getLogger(__name__)
+
+try:
+    from Cheetah.Template import Template
+except:
+    # Get the version of Cheetah installed and print it to the user, then re-raise
+    # the error so that the user can see the full stack trace.
+    import pkg_resources
+    cheetah_version = pkg_resources.get_distribution("cheetah3").version
+    log.error("Cheetah is not installed. Please install Cheetah version 3.0.0 or later, but less than 4.0.0. Detected version: %s", cheetah_version)
+    raise ImportError("Cheetah is not installed properly.",
+                      "Please install Cheetah version 3.0.0 or later, but less than 4.0.0. Detected version: {}".format(cheetah_version))
 from stat import ST_MODE
 
 from charmtools.generators import CharmTemplate
